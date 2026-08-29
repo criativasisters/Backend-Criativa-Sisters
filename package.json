@@ -1,0 +1,30 @@
+{
+  "name": "backend-criativa-sisters",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/criativasisters/Backend-Criativa-Sisters.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/criativasisters/Backend-Criativa-Sisters/issues"
+  },
+  "homepage": "https://github.com/criativasisters/Backend-Criativa-Sisters#readme",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^2.19.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mqtt": "^5.15.2",
+    "multer": "^2.3.0"
+  }
+}
