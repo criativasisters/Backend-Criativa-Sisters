@@ -23,9 +23,15 @@ const upload = multer({ storage: storage });
 app.use(cors());
 app.use(express.json());
 
-// Rota de Health Check (útil para o Render)
+// Rota de Health Check / Anti-Sleep (Cron-Job)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Criativa Sisters Backend Online' });
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] Ping recebido do Cron-job! Backend mantido acordado.`);
+  res.json({ 
+    status: 'ok', 
+    message: 'Criativa Sisters Backend Online - Sleep Evitado!',
+    time: timestamp
+  });
 });
 
 // Rota Principal: Recebe Imagem -> Extrai Cores -> "Gera" 3D (Mock) -> Retorna Dimensões
