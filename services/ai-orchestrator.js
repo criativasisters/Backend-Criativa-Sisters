@@ -14,7 +14,7 @@ export async function processImage(imageBuffer, mimeType) {
     if (process.env.GEMINI_API_KEY) {
       console.log('[AI Orchestrator] Consultando Gemini para extração de cores...');
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: [
           'Você é um assistente de impressão 3D. Analise esta imagem e retorne APENAS um array JSON válido com as 2 cores em formato Hexadecimal (ex: ["#FFFFFF", "#000000"]) que mais se destacam para uso em um filamento de impressora Bambu Lab.',
           {
