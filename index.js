@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Servicos
-import { processImage } from './services/ai-orchestrator.js';
+import { process3DGeneration, checkTaskStatus } from './services/ai-orchestrator.js';
 
 dotenv.config();
 
@@ -34,31 +34,41 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rota Principal: Recebe Imagem -> Extrai Cores -> "Gera" 3D (Mock) -> Retorna Dimensões
+// Rota 1: Inicia a Geração 3D
 app.post('/api/generate', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'Nenhuma imagem foi enviada.' });
+      return res.status(400).json({ success: false, error: 'Nenhuma imagem enviada.' });
     }
 
-    console.log(`[API] Imagem recebida: ${req.file.originalname} (${req.file.size} bytes)`);
+    // Chama o orquestrador que envia para Tripo3D e Gemini
+    const result = await process3DGeneration(req.file.buffer, req.file.mimetype);
 
-    // Injeta a imagem no orquestrador
-    const result = await processImage(req.file.buffer, req.file.mimetype);
-
-    // No futuro, salvaremos no Supabase aqui e retornaremos o ID real.
-    // Por enquanto, criamos um ID falso para testar o redirecionamento.
-    const projectId = `proj_${Math.floor(Math.random() * 10000)}`;
-
-    res.json({
-      success: true,
-      projectId: projectId,
-      data: result
-    });
-
+    if (result.success) {
+      // Retorna o taskId imediatamente para não travar o HTTP
+      return res.json({
+        success: true,
+        taskId: result.taskId,
+        colors: result.colors
+      });
+    } else {
+      return res.status(500).json(result);
+    }
   } catch (error) {
-    console.error('[API Error]:', error);
-    res.status(500).json({ error: 'Erro interno ao processar a imagem.' });
+    console.error(error);
+    return res.status(500).json({ success: false, error: 'Erro interno no servidor' });
+  }
+});
+
+// Rota 2: Verifica o Status da Tarefa no Tripo3D
+app.get('/api/status/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const result = await checkTaskStatus(taskId);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, error: 'Erro interno no servidor' });
   }
 });
 
