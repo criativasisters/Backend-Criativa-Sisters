@@ -26,7 +26,7 @@ app.use(express.json());
 // Rota de Health Check / Anti-Sleep (Cron-Job)
 app.get('/health', (req, res) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] Ping recebido do Cron-job! Backend mantido acordado.`);
+  // Log removido para não poluir o terminal
   res.json({ 
     status: 'ok', 
     message: 'Criativa Sisters Backend Online - Sleep Evitado!',
