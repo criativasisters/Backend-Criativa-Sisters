@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 // Servicos
 import { process3DGeneration, checkTaskStatus } from './services/ai-orchestrator.js';
+import { calculateShipping } from './services/melhor-envio.js';
 
 dotenv.config();
 
@@ -69,6 +70,20 @@ app.get('/api/status/:taskId', async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, error: 'Erro interno no servidor' });
+  }
+});
+
+// Rota 3: Cálculo de Frete (Melhor Envio)
+app.post('/api/shipping', async (req, res) => {
+  try {
+    const { cep, weightGrams } = req.body;
+    if (!cep) return res.status(400).json({ success: false, error: 'CEP é obrigatório.' });
+    
+    const shippingOptions = await calculateShipping(cep, weightGrams || 500);
+    return res.json({ success: true, options: shippingOptions });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, error: 'Falha ao calcular frete.' });
   }
 });
 
