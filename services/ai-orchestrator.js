@@ -14,7 +14,7 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
       try {
         console.log('[AI Orchestrator] Consultando Gemini para extração de cores...');
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             'Você é um assistente de impressão 3D. Analise esta imagem e retorne APENAS um array JSON válido com as 2 cores em formato Hexadecimal (ex: ["#FFFFFF", "#000000"]) que mais se destacam para uso em um filamento de impressora Bambu Lab.',
             { inlineData: { mimeType: mimeType, data: fileBuffer.toString('base64') } }
@@ -60,13 +60,15 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
     // 3. Iniciar a Tarefa de Geração (image_to_model)
     console.log('[AI Orchestrator] Iniciando Geração 3D...');
     
-    // O schema oficial da Tripo3D exige o objeto "file" para tasks do tipo "image_to_model"
+    // Schema oficial Tripo3D: file object + model version
     const taskPayload = {
       type: 'image_to_model',
       file: {
         type: fileExt,
         file_token: fileToken
-      }
+      },
+      model: 'v3.1-20260211',
+      model_version: 'v3.1-20260211'
     };
 
     // Tentativa 1: Endpoint V3
