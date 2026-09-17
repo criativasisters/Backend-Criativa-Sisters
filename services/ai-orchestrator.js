@@ -188,3 +188,58 @@ export async function checkTaskStatus(taskId) {
     return { status: 'failed', progress: 0, modelUrl: null, isFallback: false };
   }
 }
+
+/**
+ * Consulta o saldo atual de créditos na Tripo3D API V3
+ * Endpoint oficial: GET https://openapi.tripo3d.ai/v3/account/balance
+ */
+export async function getTripoBalance() {
+  try {
+    if (!TRIPO_API_KEY || TRIPO_API_KEY === 'mock_mode') {
+      return {
+        success: true,
+        balance: 0,
+        frozen: 0,
+        mode: 'mock',
+        message: 'Modo de contingência / mock ativo'
+      };
+    }
+
+    const res = await fetch(`${TRIPO_BASE}/account/balance`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${TRIPO_API_KEY}`
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.code === 0 && data.data) {
+      return {
+        success: true,
+        balance: Number(data.data.balance ?? 0),
+        frozen: Number(data.data.frozen ?? 0),
+        mode: 'live'
+      };
+    }
+
+    return {
+      success: false,
+      code: data.code,
+      error: data.message || 'Erro ao consultar saldo na Tripo3D',
+      balance: 0,
+      frozen: 0,
+      mode: 'live'
+    };
+  } catch (error) {
+    console.error('[AI Orchestrator] Falha na requisição de saldo Tripo3D:', error);
+    return {
+      success: false,
+      error: error.message || 'Falha de conexão com a Tripo3D',
+      balance: 0,
+      frozen: 0,
+      mode: 'error'
+    };
+  }
+}
+

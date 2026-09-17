@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Servicos
-import { process3DGeneration, checkTaskStatus } from './services/ai-orchestrator.js';
+import { process3DGeneration, checkTaskStatus, getTripoBalance } from './services/ai-orchestrator.js';
 import { calculateShipping } from './services/melhor-envio.js';
 
 dotenv.config();
@@ -87,6 +87,18 @@ app.post('/api/shipping', async (req, res) => {
   }
 });
 
+// Rota 4: Consulta Saldo de Créditos Tripo3D (Painel Admin)
+app.get('/api/admin/tripo-balance', async (req, res) => {
+  try {
+    const balanceData = await getTripoBalance();
+    return res.json(balanceData);
+  } catch (error) {
+    console.error('[Backend] Erro ao consultar saldo Tripo3D:', error);
+    return res.status(500).json({ success: false, error: 'Falha ao consultar saldo na Tripo3D' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`🚀 Backend rodando na porta ${port}`);
 });
+
