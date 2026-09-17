@@ -33,9 +33,15 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
       }
     }
 
-    // 2. Upload para Tripo3D
+    // 2. Validação da chave Tripo3D (com fallback comercial se for mock_mode)
     if (!TRIPO_API_KEY || TRIPO_API_KEY === 'mock_mode') {
-      throw new Error("TRIPO3D_API_KEY não configurada no servidor.");
+      console.warn('[AI Orchestrator] TRIPO3D_API_KEY não configurada ou em mock_mode. Ativando visualizador de contingência comercial...');
+      return {
+        success: true,
+        taskId: `cs_fallback_${Date.now()}`,
+        colors: colors,
+        isFallback: true
+      };
     }
 
     console.log('[AI Orchestrator] Fazendo upload da imagem para a Tripo3D...');
@@ -83,7 +89,7 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
     let genData = await genRes.json();
 
     // Tentativa 2 (Fallback): Endpoint OpenAPI V2/Task se o V3 recusar formato
-    if (genData.code !== 0) {
+    if (genData.code !== 0 && genData.code !== 2010) {
       console.warn('[AI Orchestrator] Tentativa V3 retornou erro, tentando endpoint alternativo /task...', genData);
       const altRes = await fetch('https://api.tripo3d.ai/v2/openapi/task', {
         method: 'POST',
@@ -99,6 +105,20 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
       }
     }
 
+    // Tratamento de Créditos Esgotados na Tripo3D (Code 2010):
+    // Em vez de quebrar a jornada do cliente, aciona o Fallback Comercial
+    // (Visualizador 3D Paramétrico + Conexão Direta com Especialista de Modelagem)
+    if (genData.code === 2010) {
+      console.warn('[AI Orchestrator] Saldo de créditos da conta Tripo3D zerado (code 2010). Ativando Rede de Segurança Comercial (Human-in-the-Loop)...');
+      return {
+        success: true,
+        taskId: `cs_fallback_${Date.now()}`,
+        colors: colors,
+        isFallback: true,
+        notice: 'Créditos da IA esgotados na provedora Tripo3D. Direcionando para visualizador de contingência comercial.'
+      };
+    }
+
     if (genData.code !== 0) {
       throw new Error(`Erro na geração Tripo: ${JSON.stringify(genData)}`);
     }
@@ -109,7 +129,8 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
     return {
       success: true,
       taskId: taskId,
-      colors: colors
+      colors: colors,
+      isFallback: false
     };
 
   } catch (error) {
@@ -121,6 +142,16 @@ export async function process3DGeneration(fileBuffer, mimeType = 'image/jpeg') {
 // 4. Função para checar o status da tarefa (Tripo3D async)
 export async function checkTaskStatus(taskId) {
   try {
+    // Se for uma tarefa originada pelo modo de contingência comercial
+    if (taskId.startsWith('cs_fallback_') || taskId.startsWith('mock_')) {
+      return {
+        status: 'success',
+        progress: 100,
+        modelUrl: 'mock',
+        isFallback: true
+      };
+    }
+
     // 1. Tenta endpoint V3
     let res = await fetch(`${TRIPO_BASE}/tasks/${taskId}`, {
       method: 'GET',
@@ -147,12 +178,13 @@ export async function checkTaskStatus(taskId) {
       return {
         status: data.data.status, // 'queued', 'running', 'success', 'failed'
         progress: data.data.progress || 0,
-        modelUrl: modelUrl
+        modelUrl: modelUrl,
+        isFallback: false
       };
     }
     throw new Error(`Falha ao checar status: ${JSON.stringify(data)}`);
   } catch (error) {
     console.error('[AI Orchestrator] Erro ao checar status:', error);
-    return { status: 'failed', progress: 0, modelUrl: null };
+    return { status: 'failed', progress: 0, modelUrl: null, isFallback: false };
   }
 }
