@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import rateLimit from 'express-rate-limit';
 
 // Servicos
 import { process3DGeneration, checkTaskStatus, getTripoBalance } from './services/ai-orchestrator.js';
@@ -17,9 +18,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Configurar multer para upload em memória
+// Configurar multer para upload em memória com limite de 10MB
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+// Configurar Rate Limiter para a rota de geração (evitar abuso)
+const generateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20, // Limite de 20 requisições por IP na janela
+  message: { success: false, error: 'Muitas requisições. Tente novamente mais tarde.' }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -36,10 +47,15 @@ app.get('/health', (req, res) => {
 });
 
 // Rota 1: Inicia a Geração 3D
-app.post('/api/generate', upload.single('image'), async (req, res) => {
+app.post('/api/generate', generateLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Nenhuma imagem enviada.' });
+    }
+
+    // Validação de tamanho no fallback do Multer
+    if (req.file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ success: false, error: 'Imagem excede limite de 10MB.' });
     }
 
     // Chama o orquestrador que envia para Tripo3D e Gemini
